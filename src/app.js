@@ -1,10 +1,10 @@
-// Etapa 2: separamos la lógica de "qué responder" (app.js) de la lógica
-// de "levantar el servidor" (server.js). Esto es un primer paso hacia
-// una arquitectura más ordenada, aunque el proyecto sea chico.
+// Etapa 4 (Semana 2): migramos de http nativo a Express.
 //
-// Este archivo exporta una función handler(req, res) que sabe rutear
-// "a mano" las peticiones según el método HTTP y la URL. No usamos
-// Express ni ningún router externo: comparamos strings nosotros mismos.
+// Express es un framework que nos da un router, manejo de middlewares y
+// helpers para responder (res.json, res.status, etc.), así dejamos de
+// comparar req.method / req.url "a mano" como hacíamos con http nativo.
+
+import express from 'express';
 
 // Datos de ejemplo. Más adelante, en una clase futura, esto podría venir
 // de una base de datos (por eso el proyecto ya tiene carpetas para
@@ -15,40 +15,27 @@ const servicios = [
   { id: 3, nombre: 'Masaje descontracturante', duracionMin: 60 },
 ];
 
-// Función auxiliar para no repetir el mismo código en cada ruta:
-// arma la respuesta con el status, el header JSON y el body ya serializado.
-function responderJSON(res, statusCode, data) {
-  res.writeHead(statusCode, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify(data));
-}
+// app es la aplicación de Express. La exportamos para que server.js la
+// use al levantar el servidor con app.listen(...).
+export const app = express();
 
-// handler(req, res) es la función que server.js le va a pasar a
-// http.createServer. Acá vive todo el ruteo manual: miramos req.method
-// (GET, POST, etc.) y req.url (la ruta pedida) para decidir qué contestar.
-export function handler(req, res) {
-  const { method, url } = req;
+app.get('/', (req, res) => {
+  res.status(200).json({
+    mensaje: 'Backend de Turnos y Reservas',
+    status: 'activo',
+  });
+});
 
-  if (method === 'GET' && url === '/') {
-    return responderJSON(res, 200, {
-      mensaje: 'Backend de Turnos y Reservas',
-      status: 'activo',
-    });
-  }
+app.get('/api/servicios', (req, res) => {
+  res.status(200).json(servicios);
+});
 
-  if (method === 'GET' && url === '/api/servicios') {
-    return responderJSON(res, 200, servicios);
-  }
-
-  if (method === 'GET' && url === '/health') {
-    // process.uptime() devuelve, en segundos, cuánto tiempo lleva
-    // corriendo el proceso de Node. Es un chequeo típico para saber
-    // si el servidor sigue "vivo".
-    return responderJSON(res, 200, {
-      status: 'ok',
-      uptime: process.uptime(),
-    });
-  }
-
-  // Si ninguna ruta anterior matcheó, respondemos 404.
-  return responderJSON(res, 404, { error: 'Ruta no encontrada' });
-}
+app.get('/health', (req, res) => {
+  // process.uptime() devuelve, en segundos, cuánto tiempo lleva
+  // corriendo el proceso de Node. Es un chequeo típico para saber
+  // si el servidor sigue "vivo".
+  res.status(200).json({
+    status: 'ok',
+    uptime: process.uptime(),
+  });
+});
