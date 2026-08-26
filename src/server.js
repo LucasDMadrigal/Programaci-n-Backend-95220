@@ -1,21 +1,17 @@
-// Etapa 2: server.js ahora solo se encarga de levantar el servidor HTTP.
-// La lógica de ruteo vive en app.js.
+// Etapa 3: server.js ahora usa la configuración validada en config.js
+// en vez de tener el puerto hardcodeado.
 import http from 'http';
-// Importante: en ESM (módulos de JavaScript "nativos", los que usan
-// import/export) hay que escribir la extensión ".js" al importar
-// archivos locales. En CommonJS (require) esto era opcional, pero en
-// ESM es obligatorio: si escribiéramos "./app" sin la extensión, Node
-// tiraría un error al no encontrar el archivo.
+// Recordá: en ESM los imports locales necesitan la extensión ".js".
 import { handler } from './app.js';
-
-// Puerto donde va a escuchar el servidor. Todavía hardcodeado: en la
-// próxima etapa lo vamos a sacar de una variable de entorno con dotenv.
-const PORT = 8080;
+import { config } from './config/config.js';
 
 // http.createServer recibe nuestra función handler como callback: se va
 // a ejecutar automáticamente cada vez que llegue una petición nueva.
 const server = http.createServer(handler);
 
-server.listen(PORT, () => {
-  console.log(`Servidor escuchando en http://localhost:${PORT}`);
+// Usamos config.port, que ya viene validado (fail-fast) y convertido a
+// Number desde config.js. Si PORT no estuviera definido en el .env, el
+// proceso ya se habría cortado antes de llegar a esta línea.
+server.listen(config.port, () => {
+  console.log(`Servidor escuchando en http://localhost:${config.port}`);
 });
