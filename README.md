@@ -4,16 +4,24 @@
 
 `backend-turnos-reservas` es una **API REST modular** de un Sistema de
 Turnos y Reservas, construida con **Express**. La API está organizada en
-capas: cada recurso tiene su **router** (mapea endpoint → función), su
-**controller** (traduce HTTP ↔ lógica de negocio: valida, elige el
-status code, arma la respuesta) y su **manager** (persistencia pura en
-un **archivo JSON** con `fs/promises`, nativo de Node). Hoy expone dos
-recursos: `services` (servicios ofrecidos, con **CRUD completo**) y
-`bookings` (reservas, que se relacionan con servicios guardando **solo
-la referencia** al `id`). La configuración (puerto, URL de base de
-datos) se carga desde variables de entorno con `dotenv` y se valida con
-el patrón **fail-fast**: si falta algo, la app avisa por consola y no
-arranca.
+**cuatro capas**, cada una con una única responsabilidad:
+
+- **router** — mapea endpoint (método + path) → función del controller.
+- **controller** — SOLO HTTP: lee `req`, valida el *formato* del
+  request (campos obligatorios → `400`), llama al service y traduce el
+  resultado a un status code + cuerpo JSON.
+- **service** — reglas de **negocio**: qué operaciones existen, qué es
+  válido, cómo se combinan los datos. No conoce `req` ni `res`.
+- **manager** — persistencia **pura**: leer/escribir el archivo JSON
+  (`fs/promises`, nativo de Node) y CRUD sobre él. Devuelve datos o
+  `null`.
+
+Hoy expone dos recursos: `services` (servicios ofrecidos, con **CRUD
+completo**) y `bookings` (reservas, que se relacionan con servicios
+guardando **solo la referencia** al `id`). La configuración (puerto,
+URL de base de datos) se carga desde variables de entorno con `dotenv`
+y se valida con el patrón **fail-fast**: si falta algo, la app avisa
+por consola y no arranca.
 
 ## Requisitos
 
@@ -46,11 +54,15 @@ src/
     services.router.js      # express.Router(): endpoints de /api/services -> controller
     bookings.router.js      # express.Router(): endpoints de /api/bookings -> controller
   controllers/
-    services.controller.js  # Lógica HTTP de services (validaciones, status codes, respuestas)
-    bookings.controller.js  # Lógica HTTP de bookings (mapea errores del manager a 404, etc.)
+    services.controller.js  # Solo HTTP: lee req, valida formato, llama al service, elige el status
+    bookings.controller.js  # Solo HTTP: mapea los resultados de dominio del service a 200/201/404/500
+  services/
+    services.service.js     # Reglas de negocio de services (incl. filtro por categoría)
+    bookings.service.js      # Reglas de negocio de bookings: valida el servicio (compone services.service)
+                             #   y aplica la regla de quantity; devuelve resultados de dominio
   managers/
-    ServiceManager.js       # Persistencia de services en FileSystem (fs/promises)
-    BookingManager.js       # Persistencia de bookings; usa ServiceManager para validar servicios
+    ServiceManager.js       # Persistencia pura de services en FileSystem (fs/promises)
+    BookingManager.js       # Persistencia pura de bookings (#read/#write + CRUD). No conoce servicios.
   data/
     services.json           # Archivo donde se guardan los servicios (arranca en [])
     bookings.json           # Archivo donde se guardan las reservas (arranca en [])
@@ -62,16 +74,30 @@ de Node: **no hace falta instalar nada nuevo** respecto de la Semana 3.
 ## Flujo de una petición
 
 ```
-Cliente  ->  Ruta (router)  ->  Controller  ->  Manager  ->  archivo JSON
+Cliente  ->  Ruta  ->  Controller  ->  Service  ->  Manager  ->  archivo JSON
 ```
 
 - **Ruta**: reconoce el método + path y llama a la función del controller.
-- **Controller**: lee `req.params` / `req.query` / `req.body`, valida,
-  le pide el trabajo al manager y decide el código HTTP + el cuerpo de
-  la respuesta. Va todo en `try/catch` → ante un error inesperado
-  responde `500`.
+- **Controller**: lee `req.params` / `req.query` / `req.body`, valida el
+  *formato* del request (si faltan campos obligatorios → `400`), llama
+  al **service** y traduce lo que devuelve a status + cuerpo. Va todo en
+  `try/catch` → ante un error inesperado responde `500`. **No** toca el
+  FileSystem ni aplica reglas de negocio.
+- **Service**: aplica las reglas de negocio (por ejemplo: "no se puede
+  agregar a una reserva un servicio que no existe", la regla de
+  `quantity`, el filtro por categoría). No conoce `req` ni `res`:
+  recibe y devuelve datos de dominio (un objeto, `null`, o un error de
+  dominio como `{ error: 'SERVICE_NOT_FOUND' }`). Un service puede
+  **componer** a otro (`bookings.service` usa `services.service` para
+  validar servicios).
 - **Manager**: lee/escribe el archivo JSON y devuelve datos o `null`.
-  No sabe nada de HTTP.
+  No sabe nada de HTTP ni de reglas de negocio.
+
+> **Por qué la capa de service.** Antes el controller mezclaba dos
+> trabajos: hablar HTTP y decidir las reglas de negocio. Separarlos deja
+> cada archivo con un motivo único para cambiar, y hace el negocio
+> testeable sin levantar un servidor. Cuando se migre a MongoDB solo
+> cambian los **managers**; services y controllers quedan casi intactos.
 
 ## Por qué la reserva guarda solo el `id` del servicio
 
@@ -82,8 +108,12 @@ solo su referencia: `{ service: <id>, quantity: <n> }`. Motivos:
   en un único lugar (`services.json`). Si mañana cambia el precio, no
   quedan copias viejas desperdigadas dentro de cada reserva.
 - **Sin inconsistencias**: una sola fuente de verdad. Para mostrar el
-  detalle, se "resuelve" la referencia pidiéndole el servicio al
-  `ServiceManager` por ese `id`.
+  detalle, se "resuelve" la referencia pidiéndole el servicio a
+  `services.service` por ese `id`.
+
+Esta regla (validar el servicio + decidir entre incrementar `quantity`
+o agregar `{ service, quantity: 1 }`) vive en `bookings.service.js`. El
+`BookingManager` solo persiste la lista ya resuelta.
 
 Cuando se agrega un servicio que **ya estaba** en la reserva, se
 incrementa su `quantity` en vez de hacer un segundo `push`: así la lista
@@ -151,8 +181,8 @@ perfecto para aprender el flujo de persistencia, pero no escala: con
 muchos registros o peticiones simultáneas se vuelve lento y puede haber
 condiciones de carrera. La próxima etapa reemplaza los archivos por una
 base de datos real: **MongoDB** con **Mongoose**. Lo bueno de la
-estructura modular es que ese cambio se hace **reescribiendo solo los
-managers**, sin tocar (casi) las rutas ni los controllers.
+estructura en capas es que ese cambio se hace **reescribiendo solo los
+managers**, sin tocar (casi) las rutas, los controllers ni los services.
 
 ## Demo de fail-fast
 
