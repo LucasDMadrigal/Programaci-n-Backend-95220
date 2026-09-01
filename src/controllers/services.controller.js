@@ -125,3 +125,12 @@ export const deleteService = async (req, res) => {
     res.status(500).json({ status: 'error', message: error.message });
   }
 };
+
+export const getServiceByName = async (req, res) => {
+  try {
+    const service = await serviceManager.getServiceByName(req.params.sname);
+    res.status(200).json({ status: 'success', payload: service });
+  } catch (error) {
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+}

@@ -36,6 +36,7 @@ const router = Router();
 
 router.get('/', getServices);
 router.get('/:sid', getServiceById);
+// router.get('/:sname', getServiceByName); // TODO: endpoint opcional para buscar por nombre
 router.post('/', createService);
 router.put('/:sid', updateService);
 router.delete('/:sid', deleteService);

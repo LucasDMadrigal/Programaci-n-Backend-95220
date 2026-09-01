@@ -127,3 +127,36 @@ export class ServiceManager {
     return deletedService;
   }
 }
+
+
+/**
+ * class Vehiculo {
+ * String motor: ""
+ * Number ruedas: 0
+ * String color: ""
+ * String marca: "" 
+ * 
+ *  constructor(motor, ruedas, color, marca) {
+ *  this.motor = motor
+ *  this.ruedas = ruedas
+ *  this.color = color
+ *  this.marca = marca
+ *  }
+ *  
+ *  funcion acelerar() {
+ *  console.log("acelerando...")
+ *  }
+ * 
+ * function frenar() {
+ *  console.log("frenando...") 
+ * 
+ * }
+ * 
+ * const miGol = new Vehiculo("GTI", 4, "rojo", "Volkswagen")
+ * const miAvion = new Vehiculo("Jet", 3, "blanco", "Boeing")
+ * const bici = new Vehiculo("", 2, "negro", "Bianchi")
+ * 
+ * console.log(miGol.color) -> "rojo"
+ * 
+ * miGol.acelerar() -> 
+ */
