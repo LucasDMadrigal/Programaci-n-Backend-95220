@@ -94,6 +94,25 @@ export class BookingManager {
     return newBooking;
   }
 
+  // Persistencia pura: busca la reserva por id, le mezcla los campos
+  // que llegan en data (preservando el id) y reescribe el archivo.
+  // Devuelve la reserva actualizada, o null si no existe. NO aplica
+  // ninguna regla de negocio: quien llama ya decidió qué guardar.
+  async updateBooking(id, data) {
+    const bookings = await this.#read();
+    const index = bookings.findIndex((b) => b.id === Number(id));
+
+    if (index === -1) {
+      return null;
+    }
+
+    const updatedBooking = { ...bookings[index], ...data, id: bookings[index].id };
+    bookings[index] = updatedBooking;
+    await this.#write(bookings);
+
+    return updatedBooking;
+  }
+
   // POST /api/bookings/:bid/services/:sid
   // Agrega un servicio a una reserva existente.
   //
