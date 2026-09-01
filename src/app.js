@@ -16,6 +16,7 @@ import express from 'express';
 // Cada recurso trae su propio router (un "mini-app" de Express con sus
 // rutas ya configuradas). app.js solo decide bajo qué prefijo se monta.
 import servicesRouter from './routes/services.router.js';
+import bookingsRouter from './routes/bookings.router.js';
 
 // app es la aplicación de Express. La exportamos para que server.js la
 // use al levantar el servidor con app.listen(...).
@@ -75,3 +76,4 @@ app.get('/health', (req, res) => {
 // relativas (por ejemplo router.get('/') es GET /api/services).
 // ---------------------------------------------------------------------
 app.use('/api/services', servicesRouter);
+app.use('/api/bookings', bookingsRouter);
