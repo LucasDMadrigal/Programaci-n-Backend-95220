@@ -1,1 +1,38 @@
-[]
+[
+  {
+    "id": 1,
+    "name": "Pedicura domicilio",
+    "description": "",
+    "duration": "3hs",
+    "price": 4000,
+    "category": "premium plus",
+    "available": true
+  },
+  {
+    "id": 2,
+    "name": "peluqueria domicilio",
+    "description": "",
+    "duration": "3hs",
+    "price": 4000,
+    "category": "premium plus",
+    "available": true
+  },
+  {
+    "id": 3,
+    "name": "peluqueria canina",
+    "description": "",
+    "duration": "3hs",
+    "price": 4000,
+    "category": "premium plus",
+    "available": true
+  },
+  {
+    "id": 4,
+    "name": "peluqueria canina domicilio",
+    "description": "",
+    "duration": "3hs",
+    "price": 5000,
+    "category": "premium",
+    "available": true
+  }
+]

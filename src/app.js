@@ -76,4 +76,5 @@ app.get('/health', (req, res) => {
 // relativas (por ejemplo router.get('/') es GET /api/services).
 // ---------------------------------------------------------------------
 app.use('/api/services', servicesRouter);
-app.use('/api/bookings', bookingsRouter);
+app.use('/api/bookings', bookingsRouter); // TODO: agregar usuarios
+// TODO: rutas y capa de usuarios

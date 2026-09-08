@@ -71,9 +71,9 @@ export class BookingManager {
       // ?? usa el valor de la derecha solo si el de la izquierda es
       // null o undefined.
       client: data.client ?? 'Anónimo',
-      date: data.date ?? null,
+      date: data.date ?? new Date().toISOString(),
       // Toda reserva nace "pendiente"; el cambio de estado es tema de
-      // otra clase.
+      // otra class.
       status: 'pending',
       // La reserva arranca SIN servicios; se agregan después con
       // addServiceToBooking.
