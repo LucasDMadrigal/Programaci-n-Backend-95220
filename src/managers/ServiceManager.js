@@ -5,12 +5,12 @@
 // disco usando el módulo nativo fs/promises. Node ya lo trae incluido:
 // no hace falta instalar ninguna dependencia.
 //
-// Responsabilidad de esta clase: SOLO leer, guardar y devolver datos (o
-// null cuando algo no existe). La validación de campos obligatorios y
-// los códigos de estado HTTP (400, 404, etc.) quedan afuera, en las
-// rutas de app.js. Así separamos "cómo se persisten los datos" de "cómo
-// se responde a una petición HTTP", que son dos responsabilidades
-// distintas.
+// Responsabilidad de esta clase: PERSISTENCIA PURA. Solo leer, guardar
+// y devolver datos (o null cuando algo no existe). Las reglas de
+// negocio viven en src/services/services.service.js; la validación de
+// formato y los códigos de estado HTTP (400, 404, etc.) viven en el
+// controller. Así separamos "cómo se persisten los datos" de "qué se
+// puede hacer con ellos" y de "cómo se responde por HTTP".
 import fs from 'fs/promises';
 
 // Ruta al archivo donde vive el "estado" del recurso services. Es una
@@ -127,3 +127,36 @@ export class ServiceManager {
     return deletedService;
   }
 }
+
+
+/**
+ * class Vehiculo {
+ * String motor: ""
+ * Number ruedas: 0
+ * String color: ""
+ * String marca: "" 
+ * 
+ *  constructor(motor, ruedas, color, marca) {
+ *  this.motor = motor
+ *  this.ruedas = ruedas
+ *  this.color = color
+ *  this.marca = marca
+ *  }
+ *  
+ *  funcion acelerar() {
+ *  console.log("acelerando...")
+ *  }
+ * 
+ * function frenar() {
+ *  console.log("frenando...") 
+ * 
+ * }
+ * 
+ * const miGol = new Vehiculo("GTI", 4, "rojo", "Volkswagen")
+ * const miAvion = new Vehiculo("Jet", 3, "blanco", "Boeing")
+ * const bici = new Vehiculo("", 2, "negro", "Bianchi")
+ * 
+ * console.log(miGol.color) -> "rojo"
+ * 
+ * miGol.acelerar() -> 
+ */

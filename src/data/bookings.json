@@ -1,0 +1,21 @@
+[
+  {
+    "id": 1,
+    "client": "Lucas",
+    "date": "",
+    "status": "pending",
+    "services": [
+      {
+        "service": 1,
+        "quantity": 1
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "client": "Lucas",
+    "date": "",
+    "status": "pending",
+    "services": []
+  }
+]
