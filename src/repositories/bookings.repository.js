@@ -4,10 +4,12 @@
 // la inyección de dependencias con valor por defecto).
 // ---------------------------------------------------------------------
 
-import { BookingFsDao } from '../dao/fileSystem/bookings.fs.dao.js';
+// import { BookingFsDao } from '../dao/fileSystem/bookings.fs.dao.js';
+import { BookingMongoDao } from '../dao/mongo/bookings.mongo.dao.js';
 
 export class BookingRepository {
-  constructor(dao = new BookingFsDao()) {
+  // Semana 6: mismo swap que en ServiceRepository (ver ese archivo).
+  constructor(dao = new BookingMongoDao()) {
     this.dao = dao;
   }
 

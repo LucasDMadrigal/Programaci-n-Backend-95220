@@ -13,10 +13,16 @@
 //     tests). El service no se entera del cambio.
 // ---------------------------------------------------------------------
 
-import { ServiceFsDao } from '../dao/fileSystem/services.fs.dao.js';
+// import { ServiceFsDao } from '../dao/fileSystem/services.fs.dao.js';
+import { ServiceMongoDao } from '../dao/mongo/services.mongo.dao.js';
 
 export class ServiceRepository {
-  constructor(dao = new ServiceFsDao()) {
+  // Semana 6: cambiamos el DAO por defecto de FileSystem a MongoDB.
+  // La línea de arriba queda comentada a propósito, para mostrar que la
+  // persistencia anterior sigue existiendo: alcanzaría con volver a
+  // cambiar este default (o inyectar new ServiceFsDao() a mano) para
+  // volver atrás sin tocar el resto de la app.
+  constructor(dao = new ServiceMongoDao()) {
     this.dao = dao;
   }
 

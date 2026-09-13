@@ -47,13 +47,14 @@ export class BookingService {
   // Crea una reserva nueva. Acá se arman los valores por defecto: el
   // repository/dao solo persiste lo que reciben, no deciden estas
   // reglas (eso es una regla de negocio, no de persistencia).
+  //
+  // Semana 6: status ya no se manda acá; el schema de BookingModel le
+  // pone 'pending' por defecto (ver src/dao/models/booking.model.js).
   async createBooking(data) {
     const newBooking = {
-      client: data.client ?? 'Anónimo',
-      date: data.date ?? null,
-      // Toda reserva nace "pendiente"; el cambio de estado es tema de
-      // otra clase.
-      status: 'pending',
+      clientName: data.clientName ?? 'Anónimo',
+      clientEmail: data.clientEmail,
+      date: data.date,
       // La reserva arranca SIN servicios; se agregan después con
       // addServiceToBooking.
       services: [],
@@ -80,23 +81,28 @@ export class BookingService {
     // 3) Regla de "quantity".
     //
     //    En booking.services NO guardamos el objeto completo del
-    //    servicio, solo su REFERENCIA (el id) + una cantidad. Motivos:
-    //      - Sin duplicación: nombre/precio/duración viven solo en
-    //        services.json. Si cambia el precio, no hay copias viejas.
+    //    servicio, solo su REFERENCIA (el ObjectId) + una cantidad.
+    //    Motivos:
+    //      - Sin duplicación: nombre/precio/duración viven solo en la
+    //        colección "services". Si cambia el precio, no hay copias
+    //        viejas.
     //      - Sin inconsistencias: una única fuente de verdad.
     //
     //    Si el servicio YA está en la reserva, incrementamos su
     //    quantity en vez de hacer un segundo push del mismo id: así la
     //    lista tiene una entrada por servicio + un contador, más fácil
     //    de leer y de mostrar que varias entradas repetidas.
-    const item = booking.services.find((s) => s.service === Number(sid));
+    //
+    //    Semana 6: s.service ahora es un ObjectId de Mongo (no un
+    //    number), así que comparamos convirtiendo ambos lados a string.
+    const item = booking.services.find((s) => String(s.service) === String(sid));
 
     if (item) {
       item.quantity += 1;
     } else {
-      // Number(sid) porque los :params de la URL siempre llegan como
-      // string y queremos guardar un número.
-      booking.services.push({ service: Number(sid), quantity: 1 });
+      // Mongoose castea automáticamente el string sid a ObjectId al
+      // guardar, gracias al tipo declarado en el schema.
+      booking.services.push({ service: sid, quantity: 1 });
     }
 
     // 4) Persistimos el cambio: le pedimos al repository que guarde la
