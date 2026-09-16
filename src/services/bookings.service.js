@@ -111,7 +111,12 @@ export class BookingService {
     //    acá.
     return this.bookingRepository.update(bid, { services: booking.services });
   }
+
+  async updateBooking(bid, data) {
+    return this.bookingRepository.update(bid, data);
+  }
 }
+
 
 // Instancia única compartida por todos los que importen este módulo.
 export const bookingService = new BookingService();

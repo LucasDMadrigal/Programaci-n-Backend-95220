@@ -53,3 +53,13 @@ export const addServiceToBooking = async (req, res) => {
     res.status(error.statusCode ?? 500).json({ status: 'error', message: error.message });
   }
 };
+
+export const updateBooking = async (req, res) => {
+  try {
+    const { bid } = req.params;
+    const updatedBooking = await bookingService.updateBooking(bid, req.body);
+    res.status(200).json({ status: 'success', payload: updatedBooking });
+  } catch (error) {
+    res.status(error.statusCode ?? 500).json({ status: 'error', message: error.message });
+  }
+};

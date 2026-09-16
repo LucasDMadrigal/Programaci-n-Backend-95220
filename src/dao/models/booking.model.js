@@ -17,11 +17,12 @@ const bookingSchema = new mongoose.Schema({
   status: {
     type: String,
     enum: ['pending', 'confirmed', 'cancelled'],
+    
     default: 'pending',
   },
   services: [
     {
-      service: { type: mongoose.Schema.Types.ObjectId, ref: 'Service' },
+      serviceId: { type: mongoose.Schema.Types.ObjectId, ref: 'Service' },
       quantity: { type: Number, default: 1 },
     },
   ],

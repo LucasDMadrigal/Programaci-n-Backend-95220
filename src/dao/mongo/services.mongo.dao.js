@@ -13,7 +13,7 @@ import { ServiceModel } from '../models/service.model.js';
 
 export class ServiceMongoDao {
   async getAll() {
-    return ServiceModel.find();
+    return ServiceModel.find({ delete: false });
   }
 
   async getById(id) {
@@ -48,6 +48,7 @@ export class ServiceMongoDao {
       return null;
     }
 
-    return ServiceModel.findByIdAndDelete(id);
+    // return ServiceModel.findByIdAndDelete(id);
+    return ServiceModel.findByIdAndUpdate(id, { delete: true }, { new: true });
   }
 }

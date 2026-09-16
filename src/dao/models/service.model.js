@@ -20,6 +20,7 @@ const serviceSchema = new mongoose.Schema(
     price: { type: Number, required: true },
     category: { type: String, required: true },
     available: { type: Boolean, default: true },
+    delete: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

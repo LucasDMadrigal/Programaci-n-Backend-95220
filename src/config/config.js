@@ -48,5 +48,5 @@ export const config = {
   // y la dejamos disponible acá, para enseñar el patrón de fail-fast
   // completo (validar todo lo que la app va a necesitar, aunque todavía
   // no se use todo).
-  mongoUri: process.env.MONGO_URI,
+  mongoUri: process.env.MONGO_ATLAS_URI,
 };

@@ -14,6 +14,7 @@ import {
   createBooking,
   getBookingById,
   addServiceToBooking,
+  updateBooking
 } from '../controllers/bookings.controller.js';
 
 const router = Router();
@@ -28,5 +29,5 @@ router.get('/:bid', getBookingById);
 // La URL anida dos recursos: la reserva (:bid) y el servicio (:sid) que
 // se le suma. Ambos llegan en req.params.
 router.post('/:bid/services/:sid', addServiceToBooking);
-
+router.put('/:bid', updateBooking);
 export default router;

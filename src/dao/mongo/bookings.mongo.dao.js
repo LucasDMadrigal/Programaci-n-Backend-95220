@@ -36,3 +36,14 @@ export class BookingMongoDao {
     return BookingModel.findByIdAndUpdate(id, data, { new: true });
   }
 }
+
+
+/**
+ * class auto() {
+ *  constructor() {
+ *    this.marca = "Ford";
+ *    this.modelo = "Fiesta";
+ *  }
+ * 
+ * const miAuto = new auto();
+ */
