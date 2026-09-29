@@ -1,43 +1,40 @@
 // ---------------------------------------------------------------------
 // Capa de SERVICE del recurso "services"
 //
-// ¿Por qué existe esta capa nueva? Hasta ahora teníamos:
-//   controller  ->  manager
-// El controller mezclaba dos cosas: hablar HTTP (leer req, elegir el
-// status, armar la respuesta) Y las reglas de negocio (filtrar, decidir
-// qué es un dato inválido, etc.). El manager, por su lado, a veces
-// terminaba haciendo más que persistir.
+// Con la capa de repository + DAO, la cadena queda:
+//   controller  ->  service  ->  repository  ->  dao  ->  JSON
 //
-// Con la capa de service la cadena queda:
-//   controller  ->  service  ->  manager
+//   controller  -> SOLO HTTP: traduce req/res <-> llamadas al service.
+//   service     -> reglas de NEGOCIO: qué es válido, cómo se combinan
+//                  los datos. NO conoce req ni res, y NUNCA instancia un
+//                  DAO directamente: solo conoce a su repository.
+//   repository  -> puente hacia el DAO (inyección de dependencias).
+//   dao         -> persistencia pura: leer/escribir el JSON.
 //
-//   controller -> SOLO HTTP: traduce req/res <-> llamadas al service.
-//   service    -> reglas de NEGOCIO: qué operaciones existen, qué es
-//                 válido, cómo se combinan los datos. NO conoce req ni
-//                 res: recibe y devuelve objetos/valores de dominio.
-//   manager    -> SOLO persistencia: leer/escribir el JSON (#read/#write)
-//                 y CRUD sobre ese archivo.
-//
-// Este service instancia su propio ServiceManager y lo usa por dentro.
-// Hacia afuera expone métodos de negocio (getServices, getServiceById,
-// createService, ...) que devuelven datos de dominio o null.
+// Antes, cuando algo no existía, esta capa devolvía `null` y el
+// controller decidía "null -> 404" con un if. Ahora el service lanza un
+// AppError con el mensaje y el status HTTP que corresponden; el
+// controller solo necesita un catch genérico (ver services.controller.js).
 // ---------------------------------------------------------------------
 
-import { ServiceManager } from '../managers/ServiceManager.js';
+import { ServiceRepository } from '../repositories/services.repository.js';
+import { AppError } from '../utils/AppError.js';
 
-class ServicesService {
-  constructor() {
-    // El service es dueño de su manager: nadie más lo instancia.
-    this.serviceManager = new ServiceManager();
+export class ServiceService {
+  // Regla de DI: el service recibe el repository por constructor (con
+  // un valor por defecto). Así nunca instancia el DAO directamente, y
+  // en los tests se le puede inyectar un repository de mentira.
+  constructor(repository = new ServiceRepository()) {
+    this.repository = repository;
   }
 
   // Devuelve la lista de servicios. Regla de negocio: si llega un
-  // filtro por categoría, se aplica acá (el controller solo nos pasa
-  // lo que vino en la query string, no filtra nada).
+  // filtro por categoría, se aplica acá (el controller solo nos pasa lo
+  // que vino en la query string, no filtra nada).
   async getServices(filtro = {}) {
     const { category } = filtro;
 
-    const servicios = await this.serviceManager.getServices();
+    const servicios = await this.repository.getAll();
 
     if (category) {
       return servicios.filter((servicio) => servicio.category === category);
@@ -46,35 +43,61 @@ class ServicesService {
     return servicios;
   }
 
-  // Devuelve el servicio con ese id, o null si no existe. La decisión
-  // de "null -> 404" es del controller; acá solo informamos el hecho
-  // de dominio "no existe".
+  // Devuelve el servicio con ese id. Si no existe, lanza un AppError
+  // 404: el controller lo atrapa y responde con ese mismo status.
   async getServiceById(id) {
-    return this.serviceManager.getServiceById(id);
+    const servicio = await this.repository.getById(id);
+
+    if (!servicio) {
+      throw new AppError('Servicio no encontrado', 404);
+    }
+
+    return servicio;
   }
 
-  // Crea un servicio. La validación de FORMATO del request (campos
-  // obligatorios) se queda en el controller porque es una regla del
-  // protocolo HTTP; acá asumimos que los datos ya vienen completos y
-  // solo orquestamos la persistencia.
+  // Crea un servicio. La validación de FORMATO del request (¿vino el
+  // body?) queda en el controller; acá validamos la regla de NEGOCIO:
+  // qué campos son obligatorios y qué valores son válidos para este
+  // dominio (por ejemplo, precio negativo).
   async createService(data) {
-    return this.serviceManager.addService(data);
+    const { name, duration, price, category } = data;
+
+    if (!name || !duration || !price || !category) {
+      throw new AppError('Faltan campos obligatorios', 400);
+    }
+
+    if (price < 0) {
+      throw new AppError('El precio no puede ser negativo', 400);
+    }
+
+    return this.repository.create(data);
   }
 
-  // Actualiza un servicio existente. Devuelve el servicio ya
-  // actualizado, o null si no existía.
+  // Actualiza un servicio existente. Si no existía, el repository
+  // devuelve null y acá lo traducimos a un AppError 404.
   async updateService(id, data) {
-    return this.serviceManager.updateService(id, data);
+    const updatedService = await this.repository.update(id, data);
+
+    if (!updatedService) {
+      throw new AppError('Servicio no encontrado', 404);
+    }
+
+    return updatedService;
   }
 
-  // Elimina un servicio. Devuelve el servicio eliminado, o null si no
-  // existía.
+  // Elimina un servicio. Si no existía, AppError 404.
   async deleteService(id) {
-    return this.serviceManager.deleteService(id);
+    const deletedService = await this.repository.delete(id);
+
+    if (!deletedService) {
+      throw new AppError('Servicio no encontrado', 404);
+    }
+
+    return deletedService;
   }
 }
 
 // Exportamos una única instancia (patrón singleton simple): todos los
 // que importen este módulo comparten el mismo service y, por lo tanto,
-// el mismo manager.
-export const servicesService = new ServicesService();
+// el mismo repository.
+export const serviceService = new ServiceService();
