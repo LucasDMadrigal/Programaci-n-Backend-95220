@@ -137,6 +137,13 @@ export class BookingService {
   async updateBooking(bid, data) {
     return this.bookingRepository.update(bid, data);
   }
+
+  // Semana 8 (reto): reporte de cantidad de reservas por estado. El
+  // aggregate vive en el DAO (es una consulta a la base); acá solo
+  // pedimos el resultado.
+  async getStatusReport() {
+    return this.bookingRepository.countByStatus();
+  }
 }
 
 

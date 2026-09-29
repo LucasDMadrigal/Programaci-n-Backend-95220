@@ -41,6 +41,26 @@ export class BookingMongoDao {
     // actualizado, en vez del que había antes del update.
     return BookingModel.findByIdAndUpdate(id, data, { new: true });
   }
+
+  // Semana 8 (reto): cantidad de reservas por estado, con el
+  // AGGREGATION PIPELINE de MongoDB. Un pipeline es una lista de
+  // "etapas" por las que pasan los documentos, una detrás de otra:
+  //
+  //   $group -> agrupa por el campo status (el "_id" del grupo) y, por
+  //             cada documento del grupo, suma 1 en "total".
+  //   $sort  -> ordena los grupos de mayor a menor total.
+  //
+  // Es el equivalente Mongo de este GROUP BY de SQL:
+  //   SELECT status, COUNT(*) AS total FROM bookings
+  //   GROUP BY status ORDER BY total DESC;
+  //
+  // Resultado: [{ _id: 'pending', total: 5 }, { _id: 'confirmed', total: 2 }, ...]
+  async countByStatus() {
+    return BookingModel.aggregate([
+      { $group: { _id: '$status', total: { $sum: 1 } } },
+      { $sort: { total: -1 } },
+    ]);
+  }
 }
 
 

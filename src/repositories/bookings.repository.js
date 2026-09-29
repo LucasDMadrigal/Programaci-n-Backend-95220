@@ -28,4 +28,8 @@ export class BookingRepository {
   async update(id, data) {
     return this.dao.update(id, data);
   }
+
+  async countByStatus() {
+    return this.dao.countByStatus();
+  }
 }

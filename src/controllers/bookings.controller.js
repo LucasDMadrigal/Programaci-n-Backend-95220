@@ -54,6 +54,18 @@ export const addServiceToBooking = async (req, res) => {
   }
 };
 
+// GET /api/bookings/report/status
+// Semana 8 (reto): cantidad de reservas por estado, calculada con un
+// aggregate de MongoDB. payload: [{ _id: 'pending', total: 3 }, ...]
+export const getStatusReport = async (req, res) => {
+  try {
+    const report = await bookingService.getStatusReport();
+    res.status(200).json({ status: 'success', payload: report });
+  } catch (error) {
+    res.status(error.statusCode ?? 500).json({ status: 'error', message: error.message });
+  }
+};
+
 export const updateBooking = async (req, res) => {
   try {
     const { bid } = req.params;
