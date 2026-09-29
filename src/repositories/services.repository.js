@@ -30,6 +30,11 @@ export class ServiceRepository {
     return this.dao.getAll();
   }
 
+  // Semana 8: solo delega en el DAO, como todos los demás métodos.
+  async getPaginated(filter, options) {
+    return this.dao.getPaginated(filter, options);
+  }
+
   async getById(id) {
     return this.dao.getById(id);
   }

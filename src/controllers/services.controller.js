@@ -22,18 +22,48 @@
 import { serviceService } from '../services/services.service.js';
 
 // GET /api/services
-// Lista todos los servicios. Filtro opcional por query string:
-// /api/services?category=salud
+// Semana 8: listado PAGINADO, con filtros y orden por query string:
+//   /api/services?category=salud&available=true&page=1&limit=2&sort=desc
+//
+// Shape de la respuesta (CAMBIÓ respecto de la Semana 7: el array ya no
+// es todo el payload "suelto", ahora viene envuelto en metadata):
+//   {
+//     status: 'success',
+//     payload: [ ...servicios de ESTA página... ],
+//     totalPages, page,
+//     hasPrevPage, hasNextPage,   // booleanos
+//     prevPage, nextPage,         // número de página o null
+//     prevLink, nextLink          // URL lista para usar o null
+//   }
 export const getServices = async (req, res) => {
   try {
-    // El controller no filtra: solo le pasa al service lo que vino en
-    // la query string. La regla de "filtrar por categoría" vive en el
+    // El controller no arma filtros: le pasa al service la query string
+    // tal cual. Traducirla a filtro/opciones de Mongo es tarea del
     // service.
-    const { category } = req.query;
+    const result = await serviceService.getServicesPaginated(req.query);
 
-    const payload = await serviceService.getServices({ category });
+    // Links de navegación: si no hay página anterior/siguiente, null.
+    // Usamos result.limit (el que efectivamente aplicó paginate) para
+    // que el link mantenga el mismo tamaño de página.
+    const prevLink = result.hasPrevPage
+      ? `/api/services?page=${result.prevPage}&limit=${result.limit}`
+      : null;
+    const nextLink = result.hasNextPage
+      ? `/api/services?page=${result.nextPage}&limit=${result.limit}`
+      : null;
 
-    res.status(200).json({ status: 'success', payload });
+    res.status(200).json({
+      status: 'success',
+      payload: result.docs,
+      totalPages: result.totalPages,
+      page: result.page,
+      hasPrevPage: result.hasPrevPage,
+      hasNextPage: result.hasNextPage,
+      prevPage: result.prevPage,
+      nextPage: result.nextPage,
+      prevLink,
+      nextLink,
+    });
   } catch (error) {
     res.status(error.statusCode ?? 500).json({ status: 'error', message: error.message });
   }
