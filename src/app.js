@@ -13,10 +13,16 @@
 
 import express from 'express';
 
+// Etapa 8 (Semana 7): motor de plantillas Handlebars para renderizar
+// vistas HTML desde el servidor (Server Side Rendering).
+import { engine } from 'express-handlebars';
+
 // Cada recurso trae su propio router (un "mini-app" de Express con sus
 // rutas ya configuradas). app.js solo decide bajo qué prefijo se monta.
 import servicesRouter from './routes/services.router.js';
 import bookingsRouter from './routes/bookings.router.js';
+// Router de VISTAS: devuelve HTML renderizado (no JSON).
+import viewsRouter from './routes/views.router.js';
 
 // app es la aplicación de Express. La exportamos para que server.js la
 // use al levantar el servidor con app.listen(...).
@@ -34,6 +40,45 @@ export const app = express();
 // express.json() va primero: así req.body ya está listo para cuando
 // llegue a cualquier ruta.
 app.use(express.json());
+
+// express.urlencoded() parsea los bodies que llegan desde un <form> HTML
+// clásico (Content-Type: application/x-www-form-urlencoded). extended:
+// true permite objetos anidados en los campos del formulario.
+app.use(express.urlencoded({ extended: true }));
+
+// ---------------------------------------------------------------------
+// Configuración del motor de vistas (Semana 7)
+//
+// app.engine registra Handlebars como motor para los archivos con
+// extensión ".handlebars".
+//
+// runtimeOptions: por seguridad, Handlebars NO deja leer propiedades que
+// vienen del "prototipo" de un objeto. Los documentos de Mongoose no son
+// objetos planos: sus campos (name, price, etc.) se exponen como
+// getters del prototipo. Sin estas dos opciones, en la vista veríamos
+// todos los campos vacíos. (Alternativa: devolver objetos planos con
+// .lean() en el DAO, pero preferimos no tocar la capa de persistencia.)
+// ---------------------------------------------------------------------
+app.engine(
+  'handlebars',
+  engine({
+    runtimeOptions: {
+      allowProtoPropertiesByDefault: true,
+      allowProtoMethodsByDefault: true,
+    },
+  })
+);
+
+// Qué motor usar por defecto en res.render(...) y dónde buscar las
+// vistas. Las rutas son relativas a donde se ejecuta "npm run dev"
+// (la raíz del proyecto).
+app.set('view engine', 'handlebars');
+app.set('views', './src/views');
+
+// Archivos estáticos: todo lo que esté en src/public se sirve tal cual.
+// Por ejemplo, src/public/js/realtime.js queda disponible en
+// http://localhost:8080/js/realtime.js
+app.use(express.static('./src/public'));
 
 // Middleware logger casero: se ejecuta en TODAS las peticiones (no tiene
 // método ni path, así que Express lo aplica siempre) y solo imprime en
@@ -77,4 +122,8 @@ app.get('/health', (req, res) => {
 // ---------------------------------------------------------------------
 app.use('/api/services', servicesRouter);
 app.use('/api/bookings', bookingsRouter); // TODO: agregar usuarios
+
+// Las vistas se montan en la raíz: /services, /services/:sid, etc. No
+// chocan con la API porque la API vive bajo el prefijo /api.
+app.use('/', viewsRouter);
 // TODO: rutas y capa de usuarios

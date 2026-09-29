@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Turnos y Reservas</title>
+  </head>
+  <body>
+    {{!--
+      Layout principal: es el "esqueleto" HTML que comparten todas las
+      vistas. Cada res.render('vista') inserta el contenido de esa vista
+      en el lugar de {{{body}}}.
+
+      TRIPLE llave {{{ }}}: inserta el HTML SIN escapar (tal cual). La
+      necesitamos acá porque body ya es HTML generado por Handlebars.
+      Con doble llave {{ }} Handlebars escapa los caracteres especiales
+      (<, >, &...) y veríamos las etiquetas como texto. Por seguridad,
+      para datos que vienen del usuario usamos SIEMPRE doble llave.
+    --}}
+    {{{body}}}
+  </body>
+</html>

@@ -1,0 +1,22 @@
+<h1>Servicios disponibles</h1>
+
+{{!--
+  #each recorre el array "services" que le pasamos desde el router con
+  res.render('services', { services }). Dentro del bloque, cada campo
+  (name, price...) se lee del servicio actual de la iteración.
+  {{else}} se muestra si el array está vacío.
+--}}
+<ul>
+  {{#each services}}
+    <li>
+      <h3><a href="/services/{{_id}}">{{name}}</a></h3>
+      <p>{{description}}</p>
+      <p>Duración: {{duration}} min</p>
+      <p>Precio: ${{price}}</p>
+      <p>Categoría: {{category}}</p>
+      <p>Disponible: {{#if available}}Sí{{else}}No{{/if}}</p>
+    </li>
+  {{else}}
+    <li>No hay servicios cargados.</li>
+  {{/each}}
+</ul>
