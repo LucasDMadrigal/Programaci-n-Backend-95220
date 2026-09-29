@@ -1,0 +1,30 @@
+<h1>Servicios en tiempo real</h1>
+
+{{!--
+  Este formulario NO se envía al servidor con un POST clásico: el
+  script realtime.js intercepta el submit y manda los datos por
+  WebSocket (evento "newService"). Por eso no tiene action ni method.
+--}}
+<form id="serviceForm">
+  <input type="text" name="name" placeholder="Nombre" required />
+  <input type="number" name="duration" placeholder="Duración (min)" min="1" required />
+  <input type="number" name="price" placeholder="Precio" min="0" required />
+  <input type="text" name="category" placeholder="Categoría" required />
+  <button type="submit">Agregar servicio</button>
+</form>
+
+{{!--
+  La lista arranca vacía: la completa el cliente cuando recibe el
+  evento "servicesUpdated" por socket (apenas se conecta y cada vez
+  que alguien agrega un servicio).
+--}}
+<ul id="servicesList"></ul>
+
+{{!--
+  1) /socket.io/socket.io.js: el cliente de Socket.io. No lo instalamos
+     nosotros: lo sirve automáticamente el server de Socket.io.
+  2) /js/realtime.js: nuestro código de cliente (src/public/js). Va
+     DESPUÉS porque usa la función io() que define el primer script.
+--}}
+<script src="/socket.io/socket.io.js"></script>
+<script src="/js/realtime.js"></script>

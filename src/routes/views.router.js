@@ -47,4 +47,11 @@ router.get('/bookings/:bid', async (req, res) => {
   }
 });
 
+// GET /realtime-services -> solo renderiza la página "vacía". Los datos
+// NO se pasan acá: llegan después por WebSocket (ver server.js y
+// src/public/js/realtime.js).
+router.get('/realtime-services', (req, res) => {
+  res.render('realtime-services', {});
+});
+
 export default router;
