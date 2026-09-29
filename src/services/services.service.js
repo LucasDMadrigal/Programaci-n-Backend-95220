@@ -92,16 +92,19 @@ export class ServiceService {
     return servicio;
   }
 
-  // Crea un servicio. La validación de FORMATO del request (¿vino el
-  // body?) queda en el controller; acá validamos la regla de NEGOCIO:
-  // qué campos son obligatorios y qué valores son válidos para este
-  // dominio (por ejemplo, precio negativo).
+  // Crea un servicio.
+  //
+  // Semana 8: la validación de FORMA (¿vinieron los campos? ¿son del
+  // tipo correcto?) ya no vive acá: la hace el middleware validateBody
+  // con Zod antes de llegar al controller (ver src/validations/). Acá
+  // queda solo la regla de NEGOCIO del dominio: un precio no puede ser
+  // negativo. La dejamos también en el service porque el service tiene
+  // otras entradas además de la API (por ejemplo el socket de
+  // realtime-services), y la regla tiene que valer para todas. Si en
+  // esa otra entrada falta un campo obligatorio, lo frena el schema de
+  // Mongoose al guardar.
   async createService(data) {
-    const { name, duration, price, category } = data;
-
-    if (!name || !duration || !price || !category) {
-      throw new AppError('Faltan campos obligatorios', 400);
-    }
+    const { price } = data;
 
     if (price < 0) {
       throw new AppError('El precio no puede ser negativo', 400);

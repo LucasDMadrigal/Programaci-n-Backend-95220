@@ -31,13 +31,17 @@ import {
   updateService,
   deleteService,
 } from '../controllers/services.controller.js';
+import { validateBody } from '../middlewares/validate.middleware.js';
+import { serviceSchema } from '../validations/service.validation.js';
 
 const router = Router();
 
 router.get('/', getServices);
 router.get('/:sid', getServiceById);
 // router.get('/:sname', getServiceByName); // TODO: endpoint opcional para buscar por nombre
-router.post('/', createService);
+// Semana 8: validateBody corre ANTES del controller. Si el body no
+// cumple el schema de Zod, responde 400 y createService nunca se ejecuta.
+router.post('/', validateBody(serviceSchema), createService);
 router.put('/:sid', updateService);
 router.delete('/:sid', deleteService);
 

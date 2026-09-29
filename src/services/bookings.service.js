@@ -50,9 +50,13 @@ export class BookingService {
   //
   // Semana 6: status ya no se manda acá; el schema de BookingModel le
   // pone 'pending' por defecto (ver src/dao/models/booking.model.js).
+  //
+  // Semana 8: clientName y clientEmail ya vienen validados por Zod
+  // (middleware validateBody en bookings.router.js), así que no hace
+  // falta un valor por defecto para clientName.
   async createBooking(data) {
     const newBooking = {
-      clientName: data.clientName ?? 'Anónimo',
+      clientName: data.clientName,
       clientEmail: data.clientEmail,
       date: data.date,
       // La reserva arranca SIN servicios; se agregan después con

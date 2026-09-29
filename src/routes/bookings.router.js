@@ -16,11 +16,14 @@ import {
   addServiceToBooking,
   updateBooking
 } from '../controllers/bookings.controller.js';
+import { validateBody } from '../middlewares/validate.middleware.js';
+import { bookingSchema } from '../validations/booking.validation.js';
 
 const router = Router();
 
 // POST /api/bookings              -> crear una reserva
-router.post('/', createBooking);
+// (el body se valida con Zod antes de llegar al controller)
+router.post('/', validateBody(bookingSchema), createBooking);
 
 // GET /api/bookings/:bid          -> ver una reserva por id
 router.get('/:bid', getBookingById);
