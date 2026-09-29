@@ -99,7 +99,12 @@ export class BookingService {
     //
     //    Semana 6: s.service ahora es un ObjectId de Mongo (no un
     //    number), así que comparamos convirtiendo ambos lados a string.
-    const item = booking.services.find((s) => String(s.service) === String(sid));
+    //
+    //    Semana 8: como getById ahora hace populate, s.service ya no es
+    //    un ObjectId sino el DOCUMENTO del servicio. Su id está en
+    //    s.service._id. Usamos ?. por si el servicio referenciado ya no
+    //    existe en la base (populate devuelve null en ese caso).
+    const item = booking.services.find((s) => String(s.service?._id) === String(sid));
 
     if (item) {
       item.quantity += 1;
@@ -113,7 +118,20 @@ export class BookingService {
     //    nueva lista de servicios de esta reserva. El repository/dao
     //    solo escribe; la regla de cómo quedó la lista ya la aplicamos
     //    acá.
-    return this.bookingRepository.update(bid, { services: booking.services });
+    //
+    //    Semana 8: guardamos solo el _id de cada servicio (no el
+    //    documento poblado): en la base la reserva sigue guardando
+    //    únicamente la referencia.
+    const services = booking.services.map((s) => ({
+      service: s.service?._id ?? s.service,
+      quantity: s.quantity,
+    }));
+
+    await this.bookingRepository.update(bid, { services });
+
+    // Devolvemos la reserva releída con getById, así la respuesta de la
+    // API también trae los servicios poblados.
+    return this.bookingRepository.getById(bid);
   }
 
   async updateBooking(bid, data) {

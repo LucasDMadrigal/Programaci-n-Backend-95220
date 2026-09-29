@@ -7,14 +7,18 @@
 <h2>Servicios reservados</h2>
 
 {{!--
-  booking.services guarda solo la REFERENCIA al servicio (su _id) y la
-  cantidad: { service: <ObjectId>, quantity: <n> }. Por eso acá vemos el
-  id y no el nombre. Dentro de #each, "this" es el item actual.
-  Cuando veamos populate(), this.service va a ser el servicio completo.
+  En la base, booking.services guarda solo la REFERENCIA al servicio (su
+  _id) y la cantidad: { service: <ObjectId>, quantity: <n> }.
+  Semana 8: el DAO hace .populate('services.service'), así que acá
+  this.service ya es el servicio COMPLETO y podemos mostrar su nombre,
+  duración y precio. Dentro de #each, "this" es el item actual.
 --}}
 <ul>
   {{#each booking.services}}
-    <li>Servicio: {{this.service}} &mdash; Cantidad: {{this.quantity}}</li>
+    <li>
+      {{this.service.name}} &mdash; {{this.service.duration}} min &mdash;
+      ${{this.service.price}} &mdash; Cantidad: {{this.quantity}}
+    </li>
   {{else}}
     <li>La reserva todavía no tiene servicios.</li>
   {{/each}}

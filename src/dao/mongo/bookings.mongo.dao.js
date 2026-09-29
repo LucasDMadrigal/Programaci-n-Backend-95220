@@ -19,7 +19,13 @@ export class BookingMongoDao {
       return null;
     }
 
-    return BookingModel.findById(id);
+    // Semana 8: populate. En la base, cada item de booking.services
+    // guarda solo { service: <ObjectId>, quantity }. .populate() hace
+    // una segunda consulta a la colección "services" (la del ref del
+    // schema) y REEMPLAZA cada ObjectId por el documento completo del
+    // servicio. Es el equivalente a un JOIN de SQL, pero resuelto por
+    // Mongoose. La base no cambia: solo cambia lo que devolvemos.
+    return BookingModel.findById(id).populate('services.service');
   }
 
   async create(data) {

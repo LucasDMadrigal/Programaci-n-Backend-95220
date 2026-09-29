@@ -22,7 +22,13 @@ const bookingSchema = new mongoose.Schema({
   },
   services: [
     {
-      serviceId: { type: mongoose.Schema.Types.ObjectId, ref: 'Service' },
+      // Semana 8: el campo se llama "service" (no "serviceId") porque
+      // es el que usa bookings.service.js al hacer push y el path que
+      // le pasamos a .populate('services.service'). Si el nombre no
+      // coincide con el schema, Mongoose (modo strict) descarta el dato
+      // en silencio y no hay nada para poblar.
+      // ref: 'Service' le dice a populate en qué colección buscar.
+      service: { type: mongoose.Schema.Types.ObjectId, ref: 'Service' },
       quantity: { type: Number, default: 1 },
     },
   ],
