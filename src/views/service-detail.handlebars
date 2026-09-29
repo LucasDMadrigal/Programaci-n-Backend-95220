@@ -1,0 +1,14 @@
+<h1>{{service.name}}</h1>
+
+{{!--
+  Recibimos un único objeto "service" desde el router:
+  res.render('service-detail', { service }). Por eso accedemos a sus
+  campos con el punto: service.name, service.price, etc.
+--}}
+<p>{{service.description}}</p>
+<p>Duración: {{service.duration}} min</p>
+<p>Precio: ${{service.price}}</p>
+<p>Categoría: {{service.category}}</p>
+<p>Disponible: {{#if service.available}}Sí{{else}}No{{/if}}</p>
+
+<a href="/services">&larr; Volver al listado</a>

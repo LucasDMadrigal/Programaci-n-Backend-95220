@@ -1,0 +1,21 @@
+<h1>Reserva de {{booking.clientName}}</h1>
+
+<p>Email: {{booking.clientEmail}}</p>
+<p>Fecha: {{booking.date}}</p>
+<p>Estado: {{booking.status}}</p>
+
+<h2>Servicios reservados</h2>
+
+{{!--
+  booking.services guarda solo la REFERENCIA al servicio (su _id) y la
+  cantidad: { service: <ObjectId>, quantity: <n> }. Por eso acá vemos el
+  id y no el nombre. Dentro de #each, "this" es el item actual.
+  Cuando veamos populate(), this.service va a ser el servicio completo.
+--}}
+<ul>
+  {{#each booking.services}}
+    <li>Servicio: {{this.service}} &mdash; Cantidad: {{this.quantity}}</li>
+  {{else}}
+    <li>La reserva todavía no tiene servicios.</li>
+  {{/each}}
+</ul>
