@@ -2,13 +2,16 @@
 
 ## Qué hace la app
 
-`backend-turnos-reservas` es una **API REST** de un Sistema de Turnos y
-Reservas sobre **MongoDB**, que desde la Semana 7 suma **vistas HTML
-renderizadas en el servidor con Handlebars** (`/services`, detalle de
-servicio y de reserva) y **tiempo real con Socket.io** (`/realtime-services`:
-un servicio creado desde una pestaña aparece al instante en todas las
-demás y queda guardado en Mongo). Las vistas y los sockets reutilizan la
-misma capa de service que la API JSON, que no cambió.
+`backend-turnos-reservas` es el backend de un Sistema de Turnos y
+Reservas sobre **MongoDB**. En la Semana 8 suma **consultas avanzadas**
+(`GET /api/services` con filtros por categoría y disponibilidad,
+**paginación** con `mongoose-paginate-v2` y **orden por precio**),
+**validación de entrada con Zod** mediante un middleware que corta con
+`400` antes de tocar la base, y **relaciones con `populate`**: las
+reservas devuelven los datos completos de cada servicio en vez de su
+`ObjectId`. Mantiene lo de la Semana 7: **vistas Handlebars** y **tiempo
+real con Socket.io** (`/realtime-services`), que siguen usando la lista
+completa de servicios.
 
 La API está construida con **Express** y organizada en **capas**, cada una
 con una única responsabilidad: `route → controller → service →
@@ -42,7 +45,8 @@ consola y no arranca.
 ## Instalación paso a paso
 
 ```bash
-npm install             # express, dotenv, mongoose, express-handlebars y socket.io
+npm install             # express, dotenv, mongoose, mongoose-paginate-v2, zod,
+                        # express-handlebars y socket.io
 cp .env.example .env    # completar PORT=8080 y pegar tu MONGO_URI (ver Atlas arriba)
 npm run dev
 ```
@@ -84,13 +88,21 @@ src/
       realtime.js               # Cliente de Socket.io (corre en el navegador)
   routes/
     services.router.js          # express.Router(): endpoints de /api/services -> controller
+                                 #   (POST valida el body con validateBody(serviceSchema))
     bookings.router.js          # express.Router(): endpoints de /api/bookings -> controller
+                                 #   (POST valida con validateBody(bookingSchema) + /report/status)
     views.router.js             # Vistas HTML (res.render) -> usa ServiceService/BookingService
+  middlewares/
+    validate.middleware.js      # validateBody(schema): safeParse de Zod -> 400 con errors o next()
+  validations/
+    service.validation.js       # Schema de Zod para crear un servicio
+    booking.validation.js       # Schema de Zod para crear una reserva
   controllers/
     services.controller.js      # Solo HTTP: lee req, llama al service, mapea error.statusCode
     bookings.controller.js      # Solo HTTP: lee req, llama al service, mapea error.statusCode
   services/
-    services.service.js         # Reglas de negocio de services (filtro por categoría, validaciones)
+    services.service.js         # Reglas de negocio de services; getServicesPaginated arma
+                                 #   filtro/orden/paginación a partir de req.query
     bookings.service.js         # Reglas de negocio de bookings: valida el servicio (compone
                                  #   ServiceRepository) y aplica la regla de quantity
   repositories/
@@ -98,12 +110,13 @@ src/
     bookings.repository.js      # Puente hacia el DAO de bookings; hoy instancia BookingMongoDao
   dao/
     models/
-      service.model.js          # Schema + model de Mongoose para "services"
+      service.model.js          # Schema + model de "services" (con plugin mongoose-paginate-v2)
       booking.model.js          # Schema + model de Mongoose para "bookings" (con hook pre('save'))
       message.model.js          # Schema + model de Mongoose para "messages" (preparado a futuro)
     mongo/
-      services.mongo.dao.js     # Persistencia pura de services en MongoDB (ServiceModel)
-      bookings.mongo.dao.js     # Persistencia pura de bookings en MongoDB (BookingModel)
+      services.mongo.dao.js     # Persistencia pura de services (getAll + getPaginated)
+      bookings.mongo.dao.js     # Persistencia pura de bookings (getById con populate,
+                                 #   countByStatus con aggregate)
     fileSystem/
       services.fs.dao.js        # Persistencia pura de services en FileSystem (fs/promises)
       bookings.fs.dao.js        # Persistencia pura de bookings en FileSystem (fs/promises)
@@ -149,8 +162,7 @@ solo su referencia: `{ service: <ObjectId>, quantity: <n> }`. Motivos:
   en un único lugar (la colección `services`). Si mañana cambia el
   precio, no quedan copias viejas desperdigadas dentro de cada reserva.
 - **Sin inconsistencias**: una sola fuente de verdad. Para mostrar el
-  detalle, se "resuelve" la referencia pidiéndole el servicio al
-  `ServiceRepository` por ese `id` (o, más adelante, con `.populate()`).
+  detalle, se "resuelve" la referencia con `.populate()` (ver abajo).
 
 Esta regla (validar el servicio + decidir entre incrementar `quantity`
 o agregar `{ service, quantity: 1 }`) vive en `bookings.service.js`. El
@@ -168,30 +180,97 @@ mostrar que varias entradas repetidas del mismo `id`.
 error -> { status: 'error',   message: <texto> }
 ```
 
+## Consultas avanzadas, validación y populate (Semana 8)
+
+### `GET /api/services`: filtros, paginación y orden
+
+Parámetros opcionales de la query string:
+
+| Parámetro | Ejemplo | Efecto |
+|---|---|---|
+| `category` | `salud` | Solo servicios de esa categoría |
+| `available` | `true` / `false` | Solo disponibles / no disponibles |
+| `page` | `2` | Número de página (default `1`) |
+| `limit` | `5` | Servicios por página (default `10`) |
+| `sort` | `asc` / `desc` | Orden por precio ascendente / descendente |
+
+> ⚠️ **El shape de la respuesta cambió.** Hasta la Semana 7, `payload`
+> era el array completo. Ahora `payload` es el array **de la página
+> pedida**, y alrededor viene la metadata de paginación:
+>
+> ```json
+> {
+>   "status": "success",
+>   "payload": [ { "_id": "...", "name": "...", "price": 9000 } ],
+>   "totalPages": 2, "page": 1,
+>   "hasPrevPage": false, "hasNextPage": true,
+>   "prevPage": null, "nextPage": 2,
+>   "prevLink": null, "nextLink": "/api/services?page=2&limit=2"
+> }
+> ```
+>
+> Las vistas (`/services`) y los sockets (`/realtime-services`) **no
+> cambian**: siguen usando `getServices()`, con la lista completa.
+
+### Validación con Zod
+
+`POST /api/services` y `POST /api/bookings` pasan primero por el
+middleware `validateBody(schema)`. Si el body no cumple el schema de
+Zod, se responde `400` **sin llegar al controller ni a la base**:
+
+```json
+{
+  "status": "error",
+  "message": "Datos inválidos",
+  "errors": ["price: Invalid input: expected number, received string"]
+}
+```
+
+Zod **no convierte tipos**: `"price": "8000"` (string) es inválido;
+tiene que ser `8000` (número). Los services quedan solo con las reglas
+de negocio (por ejemplo, precio no negativo).
+
+### Populate
+
+En la base, cada reserva sigue guardando solo `{ service: <ObjectId>,
+quantity }`. Al leerla, el DAO hace `.populate('services.service')` y
+Mongoose reemplaza cada `ObjectId` por el documento completo del
+servicio (algo parecido a un `JOIN` de SQL).
+
 ## Cómo probar la API con Postman
 
-Los endpoints JSON **no cambiaron en la Semana 7**: las vistas y los
-sockets se sumaron al lado, sin tocar controllers, services,
-repositories ni DAOs. Cada recurso trae un `_id` de MongoDB (un
-`ObjectId`). Con el servidor corriendo (por defecto en
-`http://localhost:8080`, salvo que hayas cambiado `PORT` en tu `.env`):
+Cada recurso trae un `_id` de MongoDB (un `ObjectId`). Con el servidor
+corriendo (por defecto en `http://localhost:8080`, salvo que hayas
+cambiado `PORT` en tu `.env`):
+
+**Novedades de la Semana 8**
 
 | Método | URL | Body (raw JSON) | Respuesta esperada |
 |---|---|---|---|
-| GET | `http://localhost:8080/api/services` | — | `200` · lista de servicios |
+| GET | `http://localhost:8080/api/services?category=salud&page=1&limit=2&sort=desc` | — | `200` · `payload` con hasta 2 servicios de `salud`, del más caro al más barato, + metadata de paginación |
+| GET | `http://localhost:8080/api/services` | — | `200` · listado paginado por defecto (`page=1`, `limit=10`) |
+| GET | `http://localhost:8080/api/services?available=true&sort=asc` | — | `200` · solo disponibles, del más barato al más caro |
+| POST | `http://localhost:8080/api/services` | `{ "name": "" }` | `400` · `Datos inválidos` + `errors` (name, duration, price, category) |
+| POST | `http://localhost:8080/api/services` | `{ "name":"Masajes","duration":60,"price":"8000","category":"estetica" }` | `400` · `errors: ["price: ... expected number, received string"]` |
+| POST | `http://localhost:8080/api/services` | `{ "name":"Masajes","duration":60,"price":8000,"category":"estetica" }` | `201` · servicio creado con `_id` |
+| POST | `http://localhost:8080/api/bookings` | `{ "clientName":"Ana","clientEmail":"no-es-email" }` | `400` · `errors: ["clientEmail: El email no es válido"]` |
+| GET | `http://localhost:8080/api/bookings/<bid>` | — | `200` · reserva con `services: [{ service: { _id, name, duration, price, ... }, quantity }]` (objeto completo, no `ObjectId`) |
+| GET | `http://localhost:8080/api/bookings/report/status` | — | `200` · `payload: [{ "_id": "pending", "total": 3 }, ...]` (conteo por estado con `aggregate`, el `GROUP BY` de Mongo) |
+
+**Resto de los endpoints**
+
+| Método | URL | Body (raw JSON) | Respuesta esperada |
+|---|---|---|---|
 | GET | `http://localhost:8080/api/services/<_id>` | — | `200` · servicio |
 | GET | `http://localhost:8080/api/services/<_id-inexistente>` | — | `404` · `{ message: 'Servicio no encontrado' }` |
 | GET | `http://localhost:8080/api/services/no-es-un-id` | — | `404` · `{ message: 'Servicio no encontrado' }` (id mal formado) |
-| POST | `http://localhost:8080/api/services` | `{ "name":"Masajes","duration":60,"price":8000,"category":"estetica" }` | `201` · servicio creado con `_id` |
-| POST | `http://localhost:8080/api/services` | `{ "name":"Incompleto" }` | `400` · faltan campos obligatorios |
 | PUT | `http://localhost:8080/api/services/<_id>` | `{ "price":6000 }` | `200` · servicio actualizado |
 | PUT | `http://localhost:8080/api/services/<_id-inexistente>` | `{ "price":6000 }` | `404` · `{ message: 'Servicio no encontrado' }` |
-| DELETE | `http://localhost:8080/api/services/<_id>` | — | `200` · servicio eliminado |
+| DELETE | `http://localhost:8080/api/services/<_id>` | — | `200` · servicio eliminado (borrado lógico) |
 | DELETE | `http://localhost:8080/api/services/<_id-inexistente>` | — | `404` · `{ message: 'Servicio no encontrado' }` |
 | POST | `http://localhost:8080/api/bookings` | `{ "clientName":"Ana","clientEmail":"ana@test.com","date":"2026-09-01" }` | `201` · reserva con `status:"pending"` y `services:[]` |
-| GET | `http://localhost:8080/api/bookings/<_id>` | — | `200` · reserva |
 | GET | `http://localhost:8080/api/bookings/<_id-inexistente>` | — | `404` · `{ message: 'Reserva no encontrada' }` |
-| POST | `http://localhost:8080/api/bookings/<bid>/services/<sid>` | — | `200` · agrega `{ service:<sid>, quantity:1 }` |
+| POST | `http://localhost:8080/api/bookings/<bid>/services/<sid>` | — | `200` · reserva con el servicio agregado (`quantity:1`), ya poblado |
 | POST | `http://localhost:8080/api/bookings/<bid>/services/<sid>` (otra vez) | — | `200` · ahora `quantity:2` |
 | POST | `http://localhost:8080/api/bookings/<bid>/services/<sid-inexistente>` | — | `404` · `{ message: 'Servicio no encontrado' }` |
 | POST | `http://localhost:8080/api/bookings/<bid-inexistente>/services/<sid>` | — | `404` · `{ message: 'Reserva no encontrada' }` |
@@ -221,13 +300,15 @@ de Socket.io que corre en la página. Con `npm run dev` corriendo:
    - `http://localhost:8080/services/<_id>` → datos del servicio y link
      para volver al listado.
    - `http://localhost:8080/bookings/<_id>` → datos de la reserva y sus
-     servicios (por ahora, el `_id` de cada servicio + la cantidad).
+     servicios. **Semana 8:** gracias a `populate`, cada servicio se
+     muestra con su **nombre, duración y precio** + la cantidad (antes se
+     veía solo el `ObjectId`).
    - Con un `_id` inexistente, ambas responden `404` con un texto simple.
 3. **Tiempo real**: abrí `http://localhost:8080/realtime-services` en
    **dos pestañas**. Completá el formulario en una y apretá "Agregar
    servicio": el servicio aparece en la lista de **las dos** pestañas sin
-   recargar. Si falta un campo, solo la pestaña que lo envió recibe un
-   `alert` con el error.
+   recargar. Si falta un campo o el precio es negativo, solo la pestaña
+   que lo envió recibe un `alert` con el error.
 4. **Confirmá que quedó guardado en Mongo**: recargá
    `http://localhost:8080/services`, pedí `GET /api/services` en
    Postman, o mirá la colección `services` en Atlas.
@@ -261,11 +342,12 @@ los lee ni los escribe la app.
 
 ## Próximo paso
 
-Lo que sigue es hacer `populate()` de las referencias en
-`booking.services`, para que el detalle de la reserva muestre el
-servicio completo (nombre, precio...) en vez de solo su `_id`, y armar
-consultas más avanzadas (filtros, paginación, agregaciones)
-directamente con Mongoose.
+Con consultas avanzadas, validación y relaciones cerramos el bloque de
+**backend**: la API ya lee, filtra, pagina, valida y relaciona datos
+sobre MongoDB. Lo que sigue típicamente es **autenticación** (login y
+sesiones o tokens **JWT**), **roles y autorización** (qué puede hacer
+un admin y qué un cliente) y el **deploy** de la aplicación a un
+servidor en la nube.
 
 ## Demo de fail-fast
 
