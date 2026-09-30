@@ -41,7 +41,7 @@ export class BookingMongoDao {
 
     // { new: true } hace que findByIdAndUpdate devuelva el documento ya
     // actualizado, en vez del que había antes del update.
-    return BookingModel.findByIdAndUpdate(id, data, { new: true });
+    return BookingModel.findByIdAndUpdate(id, data, { new: true, runValidators: true });
   }
 
   // Semana 8 (reto): cantidad de reservas por estado, con el
