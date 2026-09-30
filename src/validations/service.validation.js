@@ -16,10 +16,10 @@
 import { z } from 'zod';
 
 export const serviceSchema = z.object({
-  name: z.string().min(1, 'El nombre es obligatorio'),
-  description: z.string().optional(),
-  duration: z.number().positive('La duración debe ser mayor a 0'),
-  price: z.number().nonnegative('El precio no puede ser negativo'),
-  category: z.string().min(1, 'La categoría es obligatoria'),
-  available: z.boolean().optional(),
+  name: z.string().min(5, 'El nombre es obligatorio y debe tener al menos 5 caracteres'), // min(5) para que no sea un string vacío ni de 1-4 caracteres
+  description: z.string().optional(), // puede faltar, y si viene, puede ser string vacío
+  duration: z.number().positive('La duración debe ser mayor a 0'), // > 0 para que no sea 0 ni negativo
+  price: z.number().nonnegative('El precio no puede ser negativo'), // >= 0 para que no sea negativo
+  category: z.string().min(5, 'La categoría es obligatoria y debe tener al menos 5 caracteres'), // min(5) para que no sea un string vacío
+  available: z.boolean().optional(), // false o true, "False", 0, 1, "true", "false" son todos "truthy" en JS; el cliente tiene que mandar un booleano real
 });

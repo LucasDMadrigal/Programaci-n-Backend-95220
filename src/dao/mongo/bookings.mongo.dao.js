@@ -25,6 +25,8 @@ export class BookingMongoDao {
     // schema) y REEMPLAZA cada ObjectId por el documento completo del
     // servicio. Es el equivalente a un JOIN de SQL, pero resuelto por
     // Mongoose. La base no cambia: solo cambia lo que devolvemos.
+   // populate('nombreDelArrayQueEsReferencia.nombreDelCampoQueEsReferencia')
+   // es la sintaxis para poblar un array de subdocumentos que a su vez tiene un campo que es referencia a otra colección.
     return BookingModel.findById(id).populate('services.service');
   }
 
@@ -56,10 +58,12 @@ export class BookingMongoDao {
   //
   // Resultado: [{ _id: 'pending', total: 5 }, { _id: 'confirmed', total: 2 }, ...]
   async countByStatus() {
-    return BookingModel.aggregate([
+    return BookingModel.aggregate(
+      [
       { $group: { _id: '$status', total: { $sum: 1 } } },
-      { $sort: { total: -1 } },
-    ]);
+      { $sort: { _id: 1 } },
+    ]
+  );
   }
 }
 

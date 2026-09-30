@@ -42,6 +42,7 @@ router.get('/:sid', getServiceById);
 // Semana 8: validateBody corre ANTES del controller. Si el body no
 // cumple el schema de Zod, responde 400 y createService nunca se ejecuta.
 router.post('/', validateBody(serviceSchema), createService);
+// router.post('/', createService);
 router.put('/:sid', updateService);
 router.delete('/:sid', deleteService);
 

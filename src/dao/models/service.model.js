@@ -19,11 +19,11 @@ import mongoosePaginate from 'mongoose-paginate-v2';
 
 const serviceSchema = new mongoose.Schema(
   {
-    name: { type: String, required: true },
+    name: { type: String, required: true, minlength: 5 },
     description: { type: String, default: '' },
     duration: { type: Number, required: true },
     price: { type: Number, required: true },
-    category: { type: String, required: true },
+    category: { type: String, required: true, minlength: 5 },
     available: { type: Boolean, default: true },
     delete: { type: Boolean, default: false },
   },
